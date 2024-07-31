@@ -13,11 +13,8 @@ spec:
 ---
 apiVersion: v1
 data:
-  create-extensions.sh: |
-    #!/bin/sh -eu
-    psql --set ON_ERROR_STOP=1 -d quay <<EOF
+  pg_bootstrap.sql: |
     CREATE EXTENSION IF NOT EXISTS pg_trgm;
-    EOF
 kind: ConfigMap
 metadata:
   creationTimestamp: null
@@ -39,13 +36,13 @@ spec:
     spec:
       containers:
       - env:
-        - name: POSTGRESQL_USER
+        - name: POSTGRES_USER
           value: quay
-        - name: POSTGRESQL_PASSWORD
+        - name: POSTGRES_PASSWORD
           value: quay
-        - name: POSTGRESQL_DATABASE
+        - name: POSTGRES_DB
           value: quay
-        image: registry.redhat.io/rhel8/postgresql-12:latest
+        image: docker.io/library/postgres:12.1
         name: postgresql
         ports:
         - containerPort: 5432
@@ -55,7 +52,7 @@ spec:
             memory: 40Mi
         volumeMounts:
         - name: postgresql-start
-          mountPath: /opt/app-root/src/postgresql-start
+          mountPath: /docker-entrypoint-initdb.d
       volumes:
       - name: postgresql-start
         configMap:
@@ -87,7 +84,7 @@ spec:
         app: quay-redis
     spec:
       containers:
-      - image: registry.redhat.io/rhel8/redis-6
+      - image: docker.io/library/redis:latest
         name: redis
         ports:
         - containerPort: 6379
@@ -195,17 +192,17 @@ spec:
     protocol: TCP
   selector:
     app: quay-app
----
-kind: Route
-apiVersion: route.openshift.io/v1
-metadata:
-  name: quay
-spec:
-  to:
-    kind: Service
-    name: quay-app
-    weight: 100
-  tls:
-    termination: edge
-    insecureEdgeTerminationPolicy: Redirect
-  wildcardPolicy: None
+# ---
+# kind: Route
+# apiVersion: route.openshift.io/v1
+# metadata:
+#   name: quay
+# spec:
+#   to:
+#     kind: Service
+#     name: quay-app
+#     weight: 100
+#   tls:
+#     termination: edge
+#     insecureEdgeTerminationPolicy: Redirect
+#   wildcardPolicy: None
